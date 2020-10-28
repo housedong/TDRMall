@@ -1,4 +1,4 @@
-#!/bin/sh
+﻿#!/bin/sh
 # description: Auto-starts boot
 # $API_HOME/bin/boot.sh
 #启动命令： boot.sh start
