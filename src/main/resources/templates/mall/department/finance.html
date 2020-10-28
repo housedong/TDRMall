@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+    <meta name="renderer" content="webkit"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    <title>财务部</title>
+    <link rel="stylesheet" th:href="@{/layui/css/layui.css}"/>
+    <link th:href="@{/css/font-awesome.min.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/common.css}" rel="stylesheet" type="text/css"/>
+    <script th:src="@{/layui/jquery-3.2.1.min.js}"></script>
+    <script th:src="@{/layui/layui.js}"></script>
+    <meta charset="UTF-8"/>
+    <title>销售统计</title>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"/>
+    <meta content="" name="description"/>
+    <meta content="" name="author"/>
+    <link th:href="@{/css/bootstrap.min.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/bootstrap-responsive.min.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/font-awesome.min.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/style-metro.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/style.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/style-responsive.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/default.css}" rel="stylesheet" type="text/css" id="style_color"/>
+    <link th:href="@{/css/uniform.default.css}" rel="stylesheet" type="text/css"/>
+    <link th:href="@{/css/pagination.css}" rel="stylesheet" type="text/css"/>
+    <link rel="shortcut icon" th:href="@{/image/favicon.ico}"/>
+    <script th:src="@{/layui/jquery-3.2.1.min.js}"></script>
+    <script th:src="@{/layui/layui.js}"></script>
+    <style>
+
+    </style>
+</head>
+<body class="site-home">
+<!--头部模块-->
+<!--头部 导航条模块-->
+<div class="layui-header header" th:fragment="head">
+    <script>
+        //        <![CDATA[
+        var layer;
+        layui.use(["layer","element"],function () {
+            layer = layui.layer;
+        });
+        //JavaScript代码区域
+        //        ]]>
+    </script>
+    <div class="layui-main">
+
+        <a class="logo" href="#">
+            <img th:src="@{/image/logo.png}"/>
+        </a>
+        <ul class="layui-nav layui-layout-right">
+            <li class="layui-nav-item">
+                <a href="javascript:;">
+                    <i class="fa fa-user-circle"></i>&nbsp;
+                    <span th:if="${session.user != null}" th:text="'欢迎您!&nbsp;' + ${session.user.name}">请登陆</span>
+                </a>
+                <dl class="layui-nav-child">
+                    <dd th:if="${session.user != null}"><a href="/mall/user/logout.do"><i class="fa fa-sign-out"></i> 退出登录</a></dd>
+
+                </dl>
+            </li>
+            <!--<li class="layui-nav-item"><a href="">退了</a></li>-->
+        </ul>
+    </div>
+</div>
+<div class="container-fluid">
+    <div class="row-fluid">
+        <h3 class="page-title"><i class="fa fa-file-text"></i> 销售统计</h3>
+    </div>
+    <div class="row-fluid">
+        <div class="portlet box blue">
+            <div class="portlet-title">
+                <div class="caption">
+                    <i class="fa fa-reorder"></i>
+                    销售统计
+                </div>
+            </div>
+            <div class="portlet-body">
+                <div class="layui-btn-container">
+                    <button type="button" onclick="getDataCount()" class="btn success">全部</button>
+                    <button type="button" onclick="getYesterdayCount()" class="btn success">昨日业绩</button>
+                    <button type="button" onclick="getWeekCount()" class="btn success">本周业绩</button>
+                    <button type="button" onclick="getMonthCount()" class="btn success">本月业绩</button>
+                    <button type="button" onclick="getQuarterCount()" class="btn success">本季度业绩</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="weadmin-body">
+    <!-- 为 ECharts 准备一个具备大小（宽高）的 DOM -->
+    <div id="all" style="width: 100%;height:600px;"></div>
+
+</div>
+<script th:src="@{/js/jquery-1.10.1.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/jquery-migrate-1.2.1.min.js}" type="text/javascript"></script>
+<!-- IMPORTANT! Load jquery-ui-1.10.1.custom.min.js before bootstrap.min.js to fix bootstrap tooltip conflict with jquery ui tooltip -->
+<script th:src="@{/js/jquery-ui-1.10.1.custom.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/bootstrap.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/jquery.slimscroll.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/jquery.blockui.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/jquery.cookie.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/jquery.uniform.min.js}" type="text/javascript"></script>
+<script th:src="@{/js/app.js}" type="text/javascript"></script>
+<script th:src="@{/js/jquery.pagination.js}" type="text/javascript"></script>
+<script th:src="@{/echarts/echarts.min.js}" type="text/javascript"></script>
+<script th:inline="javascript" type="text/javascript">
+    //    <![CDATA[
+    var pagetotal;
+    $(function () {
+        App.init();
+        $.ajax({
+            url: "getTotal.do",
+            type: "get",
+            success: function (result) {
+                if (result.state == 0) {
+                    pagetotal = result.data;
+                    $("#Pagination").pagination(pagetotal, {
+                        num_edge_entries: 1, //边缘页数
+                        num_display_entries: 5, //主体页数
+                        callback: pageselectCallback,
+                        items_per_page: 15, //每页显示7项
+                        prev_text: "前一页",
+                        next_text: "后一页"
+                    });
+                } else {
+                    alert(result.message);
+                }
+            }
+        });
+    });
+
+    function pageselectCallback(page_index, jq) {
+        $.ajax({
+            type: "get",
+            url: "list.do?pageindex=" + page_index,
+            success: function (result) {
+                if (result.state == 0) {
+                    showList(result.data);
+                } else {
+                    alert(result.message);
+                }
+            }
+        });
+    }
+
+    function showList(data) {
+        if (!data || !data.length > 0) {
+            return;
+        }
+        //清空表
+        var tbody = $("#orderTable tbody").eq(0);
+        tbody.html("");
+        for (var i = 0; i < data.length; i++) {
+            var tr = $("<tr style='display:none;'></tr>");
+            tr.append($("<td></td>").text(data[i].id));
+            tr.append($("<td></td>").text("￥" + data[i].total));
+            tr.append($("<td></td>").text(data[i].name == null ? '' : data[i].name));
+            var state = data[i].state;
+            if (state == 1) {
+                tr.append($("<td></td>").html('<span style="border-radius: 5px !important;" class="label label-important">未付款</span>'));
+            } else if (state == 2) {
+                tr.append($("<td></td>").html("<button onclick='send(" + data[i].id + ",this)' class='btn red'>发货</button>"));
+            } else if (state == 3) {
+                tr.append($("<td></td>").html('<span style="border-radius: 5px !important;" class="label label-info">等待收货</span>'));
+            } else if (state == 4) {
+                tr.append($("<td></td>").html('<span style="border-radius: 5px !important;" class="label label-success">订单完成</span>'));
+            } else {
+                tr.append($("<td></td>").html('<span style="border-radius: 5px !important;" class="label label-default">未知状态</span>'));
+            }
+            tr.append($("<td></td>").html('<span class="label label-default" style="border-radius: 5px !important;">' + data[i].orderTime + '</span>'));
+            tr.append($("<td></td>")
+                .append($('<div style="margin:0;" class="portlet box green"><div id="detail_' + i + '" onmouseenter="getDetail(' + data[i].id + ',\'detail_' + i + '\')" class="portlet-title"><div class="caption">订单详情</div><div class="tools"><a href="" class="expand" style="color: #FFFFFF;"><i class="fa fa-caret-down"></i></a></div></div><div class="portlet-body" style="display: none;"><table class="table table-bordered table-hover"></table></div></div>')));
+            tbody.append(tr);
+            tr.fadeIn();
+        }
+
+    }
+
+    function getDetail(oid, id) {
+        var div = "#" + id;
+        if ($(div).next().find("table").html()) {
+            return;
+        }
+
+        if (!oid) {
+            alert("订单编号为空");
+            return;
+        }
+        $.ajax({
+            url: "getDetail.do?orderId=" + oid,
+            type: "get",
+            success: function (result) {
+                if (result.state == 0) {
+                    for (var i = 0; i < result.data.length; i++) {
+                        var item = result.data[i];
+                        var tr = $("<tr></tr>");
+                        tr.append($("<td><img style='display: block;height: 50px;max-width: 100%;' src='" + item.product.image + "'/></td>"));
+                        tr.append($("<td ></td>").text(item.product.title));
+                        tr.append($("<td></td>").text(item.count + "件"));
+                        tr.append($("<td></td>").text("￥" + item.subTotal));
+                        $(div).next().find("table").append(tr);
+                    }
+                } else {
+                    alert(result.message);
+                }
+            },
+            error: function () {
+                alert("连接错误！");
+            }
+        });
+    }
+
+    function send(oid, btn) {
+        if (!oid) {
+            alert("订单编号为空");
+            return;
+        }
+        $.ajax({
+            url: "send.do?id=" + oid,
+            type: "get",
+            success: function (result) {
+                if (result.state == 0) {
+                    alert("发货成功！");
+                    $(btn).parent().html("等待收货");
+                } else {
+                    alert(result.message);
+                }
+            },
+            error: function () {
+                alert("连接错误！");
+            }
+        });
+    }
+
+    $(function () {
+        getDataCount();
+    });
+
+    // 加载全部订单列表
+    function getDataCount() {
+        $.get("getData.do", function (data) {
+            if (data.state == 0) {
+                append(data);
+            } else {
+                layer.msg(data.message);
+            }
+        })
+    }
+    // 加载本日订单列表
+    function getYesterdayCount() {
+        $.get("getYesterdayData.do", function (data) {
+            if (data.state == 0) {
+                append(data);
+            } else {
+                layer.msg(data.message);
+            }
+        })
+    }
+    // 加载本周订单列表
+    function getWeekCount() {
+        $.get("getWeekCount.do", function (data) {
+            if (data.state == 0) {
+                append(data);
+            } else {
+                layer.msg(data.message);
+            }
+        })
+    }
+    // 加载本月订单列表
+    function getMonthCount() {
+        $.get("getMonthCount.do", function (data) {
+            if (data.state == 0) {
+                append(data);
+            } else {
+                layer.msg(data.message);
+            }
+        })
+    }
+    // 加载本季度订单列表
+    function getQuarterCount() {
+        $.get("getQuarterCount.do", function (data) {
+            if (data.state == 0) {
+                append(data);
+            } else {
+                layer.msg(data.message);
+            }
+        })
+    }
+    // 将数据渲染进页面
+    function append(data) {
+        var data1 = new Array();
+        var data2 = new Array();
+        var data3 = new Array();
+        var data4 = new Array();
+        var data5 = new Array();
+        // var data6 = new Array();
+
+        $(data.data).each(function (index, item) {
+            data1[index] = item.time;
+            data2[index] = item.user_name;
+            data3[index] = item.cost;
+            data4[index] = item.total;
+            data5[index] = item.earnings;
+            // data6[index] = {value:item.total,name:item.user_name};
+        });
+
+        var myAll = echarts.init(document.getElementById('all'));
+        // var myChart = echarts.init(document.getElementById('main'));
+        // 指定图表的配置项和数据
+        option1 = {
+            title : {
+                text : '整体销售情况',//标题内容
+                x: 'center'
+            },
+            tooltip : {},
+            legend : {
+                data : [ '货物总成本' ]
+                //标签内容
+                //注意例子格式为数组，后台传过来的需要对应格式处理数据
+                //data: ["衬衫","羊毛衫","雪纺衫","裤子","高跟鞋","袜子"]
+            },
+            xAxis : {
+                data :  data2,
+                name: '销售员',
+                //x轴项目名竖直排列
+                axisLabel : {
+                    interval : 0
+                }
+            },
+            yAxis : {name: '金额/元'},
+            series : [ {
+                name : '销售总金额',//与标签内容相同
+                type : 'bar',
+                //增加数据的单位展示
+                label : {
+                    normal : {
+                        show : true,
+                        position : 'top',
+                        formatter : '销售{c}'
+                    }
+                },
+                data : data4
+            },
+                {
+                    name : '家电总成本',//与标签内容相同
+                    type : 'bar',
+                    //增加数据的单位展示
+                    label : {
+                        normal : {
+                            show : true,
+                            position : 'top',
+                            formatter : '成本{c}'
+                        }
+                    },
+                    //注意例子格式为数组，后台传过来的需要对应格式处理数据
+                    //data: [5, 20, 36, 10, 10, 20]
+                    data : data3
+                } ,{
+                    name : '家电利润',//与标签内容相同
+                    type : 'bar',
+                    //增加数据的单位展示
+                    label : {
+                        normal : {
+                            show : true,
+                            position : 'top',
+                            formatter : '利润{c}'
+                        }
+                    },
+                    //注意例子格式为数组，后台传过来的需要对应格式处理数据
+                    //data: [5, 20, 36, 10, 10, 20]
+                    data : data5
+                }	]
+        };
+        // option2 = {
+        //     title : {
+        //         text: '员工销售占比',
+        //         x:'center'
+        //     },
+        //     tooltip : {
+        //         trigger: 'item',
+        //         formatter: "{a} <br/>{b} : {c} ({d}%)"
+        //     },
+        //     legend: {
+        //         orient: 'vertical',
+        //         left: 'left',
+        //         data: data6
+        //     },
+        //     series : [
+        //         {
+        //             name: '消费积分',
+        //             type: 'pie',
+        //             radius : '55%',
+        //             center: ['50%', '60%'],
+        //             data:data6,
+        //             itemStyle: {
+        //                 emphasis: {
+        //                     shadowBlur: 10,
+        //                     shadowOffsetX: 0,
+        //                     shadowColor: 'rgba(0, 0, 0, 0.5)'
+        //                 }
+        //             }
+        //         }
+        //     ]
+        // };
+        // 使用刚指定的配置项和数据显示图表。
+        myAll.setOption(option1);
+        //myChart.setOption(option2);
+    }
+    //    ]]>
+</script>
+<!--底部-->
+<div th:replace="mall/common::foot"></div>
+</body>
+</html>
